@@ -1,19 +1,36 @@
-"""
-RAG Service — Firestore for vector storage + semantic retrieval.
-Replacing ChromaDB to enable statelessness on Cloud Run.
-"""
+import os
+import json
+import logging
+import asyncio
+import fitz  # PyMuPDF
 from google.cloud import firestore
 from google.cloud.firestore_v1.vector import Vector
+from google.oauth2 import service_account
 import config
 from services import llm_service
-import fitz  # PyMuPDF
-import asyncio
-import logging
 
 logger = logging.getLogger(__name__)
 
 # Initialize Firestore
-db = firestore.Client(project=config.GOOGLE_CLOUD_PROJECT)
+def create_firestore_client():
+    sa_json = os.getenv("GCP_SERVICE_ACCOUNT_JSON_STRING")
+    if sa_json:
+        try:
+            creds_data = json.loads(sa_json)
+            creds = service_account.Credentials.from_service_account_info(creds_data)
+            logger.info("Firestore (RAG) initialized via secret string.")
+            return firestore.Client(credentials=creds, project=creds_data.get("project_id"))
+        except Exception as e:
+            logger.error(f"Failed to load Firestore from json string in RAG service: {e}")
+
+    # Fallback to default behavior
+    try:
+        return firestore.Client(project=config.GOOGLE_CLOUD_PROJECT)
+    except Exception as e:
+         logger.warning(f"Firestore Client (RAG) default initialization failed: {e}")
+         return None
+
+db = create_firestore_client()
 
 def chunk_text(text: str, chunk_size: int = 600, overlap: int = 100) -> list[str]:
     """Split text into overlapping chunks."""

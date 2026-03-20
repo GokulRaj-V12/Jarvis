@@ -3,16 +3,41 @@ Memory Service — Google Firestore for cloud-native persistence.
 Replacing SQLite to enable 24/7 hosting on Cloud Run.
 """
 from datetime import datetime, timedelta
-from google.cloud import firestore
-import config
+import os
+import json
 import logging
+from google.cloud import firestore
+from google.oauth2 import service_account
+import config
 
 logger = logging.getLogger(__name__)
 
 # Initialize Firestore client
-# This will use GOOGLE_APPLICATION_CREDENTIALS locally,
-# or the default service account when running on Cloud Run.
-db = firestore.Client(project=config.GOOGLE_CLOUD_PROJECT)
+# priority:
+# 1. Environment variable 'GCP_SERVICE_ACCOUNT_JSON_STRING'
+# 2. Environment variable 'GOOGLE_APPLICATION_CREDENTIALS' (file path)
+# 3. Default credentials (ADC)
+
+def create_firestore_client():
+    sa_json = os.getenv("GCP_SERVICE_ACCOUNT_JSON_STRING")
+    if sa_json:
+        try:
+            creds_data = json.loads(sa_json)
+            creds = service_account.Credentials.from_service_account_info(creds_data)
+            logger.info("Firestore initialized via GCP_SERVICE_ACCOUNT_JSON_STRING secret.")
+            client = firestore.Client(credentials=creds, project=creds_data.get("project_id"))
+            return client
+        except Exception as e:
+            logger.error(f"Failed to load Firestore from json string: {e}")
+
+    # Fallback to default behavior
+    try:
+        return firestore.Client(project=config.GOOGLE_CLOUD_PROJECT)
+    except Exception as e:
+         logger.warning(f"Firestore Client default initialization failed: {e}")
+         return None
+
+db = create_firestore_client()
 
 def init_db():
     """Firestore is schemaless; no explicit init needed."""

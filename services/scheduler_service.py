@@ -1,12 +1,12 @@
 """
 Scheduler Service — APScheduler for morning plans and evening reviews.
+Modified for Discord.
 """
 import logging
-import asyncio
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 import config
-from services import memory_service, telegram_service, personality_service
+from services import memory_service, discord_service, personality_service
 
 logger = logging.getLogger(__name__)
 
@@ -14,25 +14,25 @@ scheduler = AsyncIOScheduler()
 
 
 async def morning_routine():
-    """Send morning plan to all users."""
+    """Send morning plan to all users via Discord."""
     logger.info("Running morning routine...")
     user_ids = memory_service.get_all_user_ids()
     for uid in user_ids:
         try:
-            plan = await telegram_service.generate_plan(uid)
-            await telegram_service.send_message_to_user(uid, f"☀️ **Good Morning!**\n\n{plan}")
+            plan = await discord_service.generate_plan_internal(uid)
+            await discord_service.send_proactive_message(uid, f"☀️ **Good Morning!**\n\n{plan}")
         except Exception as e:
             logger.error(f"Morning routine failed for user {uid}: {e}")
 
 
 async def evening_routine():
-    """Send evening review to all users."""
+    """Send evening review to all users via Discord."""
     logger.info("Running evening routine...")
     user_ids = memory_service.get_all_user_ids()
     for uid in user_ids:
         try:
-            review = await telegram_service.generate_review(uid)
-            await telegram_service.send_message_to_user(uid, f"🌙 **Evening Check-in**\n\n{review}")
+            review = await discord_service.generate_review_internal(uid)
+            await discord_service.send_proactive_message(uid, f"🌙 **Evening Check-in**\n\n{review}")
         except Exception as e:
             logger.error(f"Evening routine failed for user {uid}: {e}")
 
