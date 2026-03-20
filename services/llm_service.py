@@ -101,24 +101,20 @@ async def generate(prompt: str, context: str = "", system: str = "") -> str:
         return "I'm having trouble connecting right now. Give me a moment and try again! 🐾"
 
 
+# --- Local Embedding Setup (Bypass Google API entirely) ---
+import chromadb.utils.embedding_functions as embedding_functions
+
+# Initialize the lightweight local ONNX model (all-MiniLM-L6-v2)
+_local_embedding_fn = None
+
 async def generate_embedding(text: str) -> list[float]:
-    """Generate embedding vector for text using the raw REST API to bypass gRPC bugs."""
-    import aiohttp
-    import json
-    
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/embedding-001:embedContent?key={config.GEMINI_API_KEY}"
-    
-    async with aiohttp.ClientSession() as session:
-        payload = {
-            "model": "models/embedding-001",
-            "content": {"parts": [{"text": text}]}
-        }
-        headers = {"Content-Type": "application/json"}
+    """Generate embedding vector using a local model to completely bypass Google API limits."""
+    global _local_embedding_fn
+    if _local_embedding_fn is None:
+        logger.info("Initializing local ONNX embedding model (first run will download ~80MB)...")
+        # Use the default local model provided by chroma
+        _local_embedding_fn = embedding_functions.DefaultEmbeddingFunction()
         
-        async with session.post(url, json=payload, headers=headers) as response:
-            if response.status != 200:
-                error_text = await response.text()
-                raise RuntimeError(f"Embedding REST API failed: {response.status} - {error_text}")
-            
-            data = await response.json()
-            return data["embedding"]["values"]
+    # The function expects a list of texts and returns a list of embeddings
+    embeddings = _local_embedding_fn([text])
+    return [float(x) for x in embeddings[0]]
