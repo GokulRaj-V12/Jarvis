@@ -75,18 +75,20 @@ def save_log(user_id: int, content: str, mood: str = "", blockers: str = ""):
     _update_streak(user_id, today)
 
 def get_recent_logs(user_id: int, days: int = 7) -> list[dict]:
-    query = db.collection("daily_logs")\
-            .where("user_id", "==", user_id)\
-            .order_by("date", direction=firestore.Query.DESCENDING)\
-            .limit(days)
-    return [doc.to_dict() for doc in query.stream()]
+    # Query only by user_id to avoid requiring a composite index
+    query = db.collection("daily_logs").where(filter=firestore.FieldFilter("user_id", "==", user_id))
+    docs = [doc.to_dict() for doc in query.stream()]
+    # Sort in memory and limit
+    docs.sort(key=lambda x: x.get("date", ""), reverse=True)
+    return docs[:days]
 
 def get_today_logs(user_id: int) -> list[dict]:
     today = datetime.now().strftime("%Y-%m-%d")
-    query = db.collection("daily_logs")\
-            .where("user_id", "==", user_id)\
-            .where("date", "==", today)
-    return [doc.to_dict() for doc in query.stream()]
+    # Query only by user_id to avoid requiring a composite index
+    query = db.collection("daily_logs").where(filter=firestore.FieldFilter("user_id", "==", user_id))
+    docs = [doc.to_dict() for doc in query.stream()]
+    # Filter in memory
+    return [d for d in docs if d.get("date") == today]
 
 # --- Goals ---
 
@@ -102,11 +104,16 @@ def save_goal(user_id: int, title: str, description: str = ""):
     db.collection("goals").add(goal_data)
 
 def get_active_goals(user_id: int) -> list[dict]:
-    query = db.collection("goals")\
-            .where("user_id", "==", user_id)\
-            .where("status", "==", "active")\
-            .order_by("created_at", direction=firestore.Query.DESCENDING)
-    return [doc.to_dict() for doc in query.stream()]
+    # Query only by user_id to avoid requiring a composite index
+    query = db.collection("goals").where(filter=firestore.FieldFilter("user_id", "==", user_id))
+    docs = [doc.to_dict() for doc in query.stream()]
+    # Filter and sort in memory
+    active_docs = [d for d in docs if d.get("status") == "active"]
+    try:
+        active_docs.sort(key=lambda x: str(x.get("created_at", "")), reverse=True)
+    except Exception:
+        pass # Handle case where created_at is server timestamp token
+    return active_docs
 
 def complete_goal(user_id: int, goal_id: str):
     # Note: In Firestore, goal_id is likely a string (the auto-id)
