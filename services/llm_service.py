@@ -106,11 +106,11 @@ async def generate_embedding(text: str) -> list[float]:
     import aiohttp
     import json
     
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key={config.GEMINI_API_KEY}"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/embedding-001:embedContent?key={config.GEMINI_API_KEY}"
     
     async with aiohttp.ClientSession() as session:
         payload = {
-            "model": "models/text-embedding-004",
+            "model": "models/embedding-001",
             "content": {"parts": [{"text": text}]}
         }
         headers = {"Content-Type": "application/json"}
