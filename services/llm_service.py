@@ -104,7 +104,7 @@ async def generate(prompt: str, context: str = "", system: str = "") -> str:
 async def generate_embedding(text: str) -> list[float]:
     """Generate embedding vector for text (used by RAG). Always uses Gemini."""
     result = genai.embed_content(
-        model="models/text-embedding-004",
+        model="models/embedding-001",
         content=text,
     )
     return result["embedding"]
