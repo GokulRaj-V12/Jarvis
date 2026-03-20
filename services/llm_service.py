@@ -102,9 +102,23 @@ async def generate(prompt: str, context: str = "", system: str = "") -> str:
 
 
 async def generate_embedding(text: str) -> list[float]:
-    """Generate embedding vector for text (used by RAG). Always uses Gemini."""
-    result = genai.embed_content(
-        model="models/embedding-001",
-        content=text,
-    )
-    return result["embedding"]
+    """Generate embedding vector for text using the raw REST API to bypass gRPC bugs."""
+    import aiohttp
+    import json
+    
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key={config.GEMINI_API_KEY}"
+    
+    async with aiohttp.ClientSession() as session:
+        payload = {
+            "model": "models/text-embedding-004",
+            "content": {"parts": [{"text": text}]}
+        }
+        headers = {"Content-Type": "application/json"}
+        
+        async with session.post(url, json=payload, headers=headers) as response:
+            if response.status != 200:
+                error_text = await response.text()
+                raise RuntimeError(f"Embedding REST API failed: {response.status} - {error_text}")
+            
+            data = await response.json()
+            return data["embedding"]["values"]
