@@ -11,6 +11,7 @@ venv/
 
 # Data (local DB and vector store)
 data/
+*.json
 
 # IDE
 .vscode/

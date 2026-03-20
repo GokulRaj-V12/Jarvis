@@ -1,245 +1,154 @@
 """
-Memory Service — SQLite for structured data (users, logs, goals, personality).
+Memory Service — Google Firestore for cloud-native persistence.
+Replacing SQLite to enable 24/7 hosting on Cloud Run.
 """
-import sqlite3
-from datetime import datetime
-from contextlib import contextmanager
+from datetime import datetime, timedelta
+from google.cloud import firestore
 import config
+import logging
 
+logger = logging.getLogger(__name__)
 
-def _get_conn():
-    conn = sqlite3.connect(str(config.SQLITE_DB_PATH))
-    conn.row_factory = sqlite3.Row
-    return conn
-
-
-@contextmanager
-def _db():
-    conn = _get_conn()
-    try:
-        yield conn
-        conn.commit()
-    finally:
-        conn.close()
-
+# Initialize Firestore client
+# This will use GOOGLE_APPLICATION_CREDENTIALS locally,
+# or the default service account when running on Cloud Run.
+db = firestore.Client(project=config.GOOGLE_CLOUD_PROJECT)
 
 def init_db():
-    """Create all tables if they don't exist."""
-    with _db() as conn:
-        conn.executescript("""
-            CREATE TABLE IF NOT EXISTS users (
-                user_id INTEGER PRIMARY KEY,
-                username TEXT,
-                first_name TEXT,
-                timezone TEXT DEFAULT 'Asia/Kolkata',
-                created_at TEXT DEFAULT (datetime('now'))
-            );
-
-            CREATE TABLE IF NOT EXISTS daily_logs (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER,
-                date TEXT,
-                content TEXT,
-                mood TEXT,
-                blockers TEXT,
-                created_at TEXT DEFAULT (datetime('now')),
-                FOREIGN KEY (user_id) REFERENCES users(user_id)
-            );
-
-            CREATE TABLE IF NOT EXISTS goals (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER,
-                title TEXT,
-                description TEXT DEFAULT '',
-                status TEXT DEFAULT 'active',
-                created_at TEXT DEFAULT (datetime('now')),
-                updated_at TEXT DEFAULT (datetime('now')),
-                FOREIGN KEY (user_id) REFERENCES users(user_id)
-            );
-
-            CREATE TABLE IF NOT EXISTS personality_profiles (
-                user_id INTEGER PRIMARY KEY,
-                motivation_style TEXT DEFAULT '',
-                thinking_style TEXT DEFAULT '',
-                weakness_patterns TEXT DEFAULT '',
-                energy_cycles TEXT DEFAULT '',
-                work_habits TEXT DEFAULT '',
-                summary TEXT DEFAULT '',
-                updated_at TEXT DEFAULT (datetime('now')),
-                FOREIGN KEY (user_id) REFERENCES users(user_id)
-            );
-
-            CREATE TABLE IF NOT EXISTS streaks (
-                user_id INTEGER PRIMARY KEY,
-                current_streak INTEGER DEFAULT 0,
-                longest_streak INTEGER DEFAULT 0,
-                last_log_date TEXT,
-                total_logs INTEGER DEFAULT 0,
-                FOREIGN KEY (user_id) REFERENCES users(user_id)
-            );
-        """)
-
+    """Firestore is schemaless; no explicit init needed."""
+    logger.info("Firestore memory service initialized.")
 
 # --- Users ---
 
 def upsert_user(user_id: int, username: str = "", first_name: str = ""):
-    with _db() as conn:
-        conn.execute(
-            """INSERT INTO users (user_id, username, first_name)
-               VALUES (?, ?, ?)
-               ON CONFLICT(user_id) DO UPDATE SET username=?, first_name=?""",
-            (user_id, username, first_name, username, first_name),
-        )
-
+    doc_ref = db.collection("users").document(str(user_id))
+    doc_ref.set({
+        "user_id": user_id,
+        "username": username,
+        "first_name": first_name,
+        "updated_at": firestore.SERVER_TIMESTAMP
+    }, merge=True)
 
 def get_user(user_id: int) -> dict | None:
-    with _db() as conn:
-        row = conn.execute("SELECT * FROM users WHERE user_id=?", (user_id,)).fetchone()
-        return dict(row) if row else None
-
+    doc = db.collection("users").document(str(user_id)).get()
+    return doc.to_dict() if doc.exists else None
 
 # --- Daily Logs ---
 
 def save_log(user_id: int, content: str, mood: str = "", blockers: str = ""):
     today = datetime.now().strftime("%Y-%m-%d")
-    with _db() as conn:
-        conn.execute(
-            "INSERT INTO daily_logs (user_id, date, content, mood, blockers) VALUES (?, ?, ?, ?, ?)",
-            (user_id, today, content, mood, blockers),
-        )
-        # Update streak
-        _update_streak(conn, user_id, today)
-
+    log_data = {
+        "user_id": user_id,
+        "date": today,
+        "content": content,
+        "mood": mood,
+        "blockers": blockers,
+        "created_at": firestore.SERVER_TIMESTAMP
+    }
+    db.collection("daily_logs").add(log_data)
+    # Update streak
+    _update_streak(user_id, today)
 
 def get_recent_logs(user_id: int, days: int = 7) -> list[dict]:
-    with _db() as conn:
-        rows = conn.execute(
-            """SELECT * FROM daily_logs WHERE user_id=?
-               ORDER BY date DESC LIMIT ?""",
-            (user_id, days),
-        ).fetchall()
-        return [dict(r) for r in rows]
-
+    query = db.collection("daily_logs")\
+            .where("user_id", "==", user_id)\
+            .order_by("date", direction=firestore.Query.DESCENDING)\
+            .limit(days)
+    return [doc.to_dict() for doc in query.stream()]
 
 def get_today_logs(user_id: int) -> list[dict]:
     today = datetime.now().strftime("%Y-%m-%d")
-    with _db() as conn:
-        rows = conn.execute(
-            "SELECT * FROM daily_logs WHERE user_id=? AND date=?",
-            (user_id, today),
-        ).fetchall()
-        return [dict(r) for r in rows]
-
+    query = db.collection("daily_logs")\
+            .where("user_id", "==", user_id)\
+            .where("date", "==", today)
+    return [doc.to_dict() for doc in query.stream()]
 
 # --- Goals ---
 
 def save_goal(user_id: int, title: str, description: str = ""):
-    with _db() as conn:
-        conn.execute(
-            "INSERT INTO goals (user_id, title, description) VALUES (?, ?, ?)",
-            (user_id, title, description),
-        )
-
+    goal_data = {
+        "user_id": user_id,
+        "title": title,
+        "description": description,
+        "status": "active",
+        "created_at": firestore.SERVER_TIMESTAMP,
+        "updated_at": firestore.SERVER_TIMESTAMP
+    }
+    db.collection("goals").add(goal_data)
 
 def get_active_goals(user_id: int) -> list[dict]:
-    with _db() as conn:
-        rows = conn.execute(
-            "SELECT * FROM goals WHERE user_id=? AND status='active' ORDER BY created_at DESC",
-            (user_id,),
-        ).fetchall()
-        return [dict(r) for r in rows]
+    query = db.collection("goals")\
+            .where("user_id", "==", user_id)\
+            .where("status", "==", "active")\
+            .order_by("created_at", direction=firestore.Query.DESCENDING)
+    return [doc.to_dict() for doc in query.stream()]
 
-
-def complete_goal(user_id: int, goal_id: int):
-    with _db() as conn:
-        conn.execute(
-            "UPDATE goals SET status='completed', updated_at=datetime('now') WHERE id=? AND user_id=?",
-            (goal_id, user_id),
-        )
-
+def complete_goal(user_id: int, goal_id: str):
+    # Note: In Firestore, goal_id is likely a string (the auto-id)
+    doc_ref = db.collection("goals").document(goal_id)
+    doc_ref.update({
+        "status": "completed",
+        "updated_at": firestore.SERVER_TIMESTAMP
+    })
 
 # --- Personality ---
 
 def get_personality(user_id: int) -> dict | None:
-    with _db() as conn:
-        row = conn.execute(
-            "SELECT * FROM personality_profiles WHERE user_id=?", (user_id,)
-        ).fetchone()
-        return dict(row) if row else None
-
+    doc = db.collection("personality_profiles").document(str(user_id)).get()
+    return doc.to_dict() if doc.exists else None
 
 def save_personality(user_id: int, profile: dict):
-    with _db() as conn:
-        conn.execute(
-            """INSERT INTO personality_profiles
-               (user_id, motivation_style, thinking_style, weakness_patterns, energy_cycles, work_habits, summary, updated_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
-               ON CONFLICT(user_id) DO UPDATE SET
-               motivation_style=?, thinking_style=?, weakness_patterns=?,
-               energy_cycles=?, work_habits=?, summary=?, updated_at=datetime('now')""",
-            (
-                user_id,
-                profile.get("motivation_style", ""),
-                profile.get("thinking_style", ""),
-                profile.get("weakness_patterns", ""),
-                profile.get("energy_cycles", ""),
-                profile.get("work_habits", ""),
-                profile.get("summary", ""),
-                profile.get("motivation_style", ""),
-                profile.get("thinking_style", ""),
-                profile.get("weakness_patterns", ""),
-                profile.get("energy_cycles", ""),
-                profile.get("work_habits", ""),
-                profile.get("summary", ""),
-            ),
-        )
-
+    doc_ref = db.collection("personality_profiles").document(str(user_id))
+    profile["updated_at"] = firestore.SERVER_TIMESTAMP
+    doc_ref.set(profile, merge=True)
 
 # --- Streaks ---
 
-def _update_streak(conn, user_id: int, today: str):
-    row = conn.execute("SELECT * FROM streaks WHERE user_id=?", (user_id,)).fetchone()
-    if not row:
-        conn.execute(
-            "INSERT INTO streaks (user_id, current_streak, longest_streak, last_log_date, total_logs) VALUES (?, 1, 1, ?, 1)",
-            (user_id, today),
-        )
+def _update_streak(user_id: int, today: str):
+    doc_ref = db.collection("streaks").document(str(user_id))
+    doc = doc_ref.get()
+
+    if not doc.exists:
+        doc_ref.set({
+            "user_id": user_id,
+            "current_streak": 1,
+            "longest_streak": 1,
+            "last_log_date": today,
+            "total_logs": 1
+        })
         return
 
-    streak = dict(row)
-    total = streak["total_logs"] + 1
+    streak = doc.to_dict()
+    total = streak.get("total_logs", 0) + 1
 
     if streak["last_log_date"] == today:
-        # Already logged today, just update total
-        conn.execute("UPDATE streaks SET total_logs=? WHERE user_id=?", (total, user_id))
+        doc_ref.update({"total_logs": total})
         return
 
-    # Check if yesterday
-    from datetime import timedelta
     yesterday = (datetime.strptime(today, "%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d")
     if streak["last_log_date"] == yesterday:
         new_streak = streak["current_streak"] + 1
     else:
         new_streak = 1
 
-    longest = max(new_streak, streak["longest_streak"])
-    conn.execute(
-        "UPDATE streaks SET current_streak=?, longest_streak=?, last_log_date=?, total_logs=? WHERE user_id=?",
-        (new_streak, longest, today, total, user_id),
-    )
-
+    longest = max(new_streak, streak.get("longest_streak", 0))
+    doc_ref.update({
+        "current_streak": new_streak,
+        "longest_streak": longest,
+        "last_log_date": today,
+        "total_logs": total
+    })
 
 def get_streak(user_id: int) -> dict:
-    with _db() as conn:
-        row = conn.execute("SELECT * FROM streaks WHERE user_id=?", (user_id,)).fetchone()
-        if row:
-            return dict(row)
-        return {"current_streak": 0, "longest_streak": 0, "total_logs": 0}
-
+    doc = db.collection("streaks").document(str(user_id)).get()
+    if doc.exists:
+        return doc.to_dict()
+    return {"current_streak": 0, "longest_streak": 0, "total_logs": 0}
 
 # --- All users (for scheduler) ---
 
 def get_all_user_ids() -> list[int]:
-    with _db() as conn:
-        rows = conn.execute("SELECT user_id FROM users").fetchall()
-        return [r["user_id"] for r in rows]
+    # In a large-scale bot, we'd use a better way than streaming all users,
+    # but for a personal bot, this is fine.
+    docs = db.collection("users").stream()
+    return [int(doc.id) for doc in docs]

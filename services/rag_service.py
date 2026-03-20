@@ -1,33 +1,22 @@
 """
-RAG Service — ChromaDB for vector storage + retrieval.
-Handles PDF parsing, chunking, embedding, and semantic search.
+RAG Service — Firestore for vector storage + semantic retrieval.
+Replacing ChromaDB to enable statelessness on Cloud Run.
 """
-import chromadb
-from chromadb.config import Settings
+from google.cloud import firestore
+from google.cloud.firestore_v1.vector import Vector
 import config
 from services import llm_service
 import fitz  # PyMuPDF
 import asyncio
+import logging
 
-# Initialize ChromaDB
-_client = chromadb.Client(Settings(
-    persist_directory=config.CHROMA_PERSIST_DIR,
-    anonymized_telemetry=False,
-    is_persistent=True,
-))
+logger = logging.getLogger(__name__)
 
-
-def _get_collection(user_id: int):
-    """Get or create a ChromaDB collection for a user."""
-    return _client.get_or_create_collection(
-        name=f"user_{user_id}",
-        metadata={"hnsw:space": "cosine"},
-    )
-
+# Initialize Firestore
+db = firestore.Client(project=config.GOOGLE_CLOUD_PROJECT)
 
 def chunk_text(text: str, chunk_size: int = 600, overlap: int = 100) -> list[str]:
-    """Split text into overlapping chunks of ~chunk_size tokens (rough char estimate)."""
-    # Rough: 1 token ≈ 4 chars
+    """Split text into overlapping chunks."""
     char_size = chunk_size * 4
     char_overlap = overlap * 4
     chunks = []
@@ -40,7 +29,6 @@ def chunk_text(text: str, chunk_size: int = 600, overlap: int = 100) -> list[str
         start += char_size - char_overlap
     return chunks
 
-
 def parse_pdf(file_bytes: bytes) -> str:
     """Extract text from a PDF file."""
     doc = fitz.open(stream=file_bytes, filetype="pdf")
@@ -50,58 +38,70 @@ def parse_pdf(file_bytes: bytes) -> str:
     doc.close()
     return text
 
-
 async def add_documents(user_id: int, texts: list[str], source: str = "autobiography"):
-    """Embed and store text chunks for a user."""
-    collection = _get_collection(user_id)
+    """Embed and store text chunks in Firestore."""
+    coll_ref = db.collection("memories")
+
     for i, chunk in enumerate(texts):
         embedding = await llm_service.generate_embedding(chunk)
-        collection.add(
-            ids=[f"{source}_{i}"],
-            embeddings=[embedding],
-            documents=[chunk],
-            metadatas=[{"source": source, "chunk_index": i}],
-        )
-
+        # Firestore Vector Search requires the vector to be stored as a Vector object
+        doc_data = {
+            "user_id": user_id,
+            "content": chunk,
+            "embedding": Vector(embedding),
+            "source": source,
+            "chunk_index": i,
+            "created_at": firestore.SERVER_TIMESTAMP
+        }
+        coll_ref.add(doc_data)
 
 async def add_log_to_rag(user_id: int, log_text: str, log_date: str):
-    """Add a daily log entry to RAG for future retrieval."""
-    collection = _get_collection(user_id)
+    """Add a daily log entry to RAG."""
+    coll_ref = db.collection("memories")
     embedding = await llm_service.generate_embedding(log_text)
-    doc_id = f"log_{log_date}_{hash(log_text) % 10000}"
-    collection.add(
-        ids=[doc_id],
-        embeddings=[embedding],
-        documents=[log_text],
-        metadatas=[{"source": "daily_log", "date": log_date}],
-    )
+    doc_data = {
+        "user_id": user_id,
+        "content": log_text,
+        "embedding": Vector(embedding),
+        "source": "daily_log",
+        "date": log_date,
+        "created_at": firestore.SERVER_TIMESTAMP
+    }
+    coll_ref.add(doc_data)
 
+async def query(user_id: int, question: str, k: int = 3) -> list[str]:
+    """Retrieve top-k relevant chunks using Firestore Vector Search."""
+    collection = db.collection("memories")
 
-async def query(user_id: int, question: str, k: int = 5) -> list[str]:
-    """Retrieve the top-k most relevant chunks for a question."""
-    collection = _get_collection(user_id)
+    # Generate embedding for the question
+    question_vector = await llm_service.generate_embedding(question)
 
-    if collection.count() == 0:
+    # Perform vector search
+    # This requires a vector index in Firestore!
+    try:
+        query = collection.where("user_id", "==", user_id)\
+            .find_nearest(
+                vector_field="embedding",
+                query_vector=Vector(question_vector),
+                distance_measure=firestore.VectorDistanceMeasure.COSINE,
+                limit=k
+            )
+        results = query.get()
+        return [doc.to_dict().get("content", "") for doc in results]
+    except Exception as e:
+        logger.error(f"Vector search failed (did you create the index?): {e}")
+        # Fail gracefully by falling back to just returning nothing or latest logs
         return []
 
-    embedding = await llm_service.generate_embedding(question)
-    results = collection.query(
-        query_embeddings=[embedding],
-        n_results=min(k, collection.count()),
-    )
-    return results["documents"][0] if results["documents"] else []
-
-
 async def ingest_pdf(user_id: int, file_bytes: bytes) -> int:
-    """Parse a PDF, chunk it, embed it, and store in ChromaDB. Returns chunk count."""
+    """Process a PDF and store in Firestore."""
     text = parse_pdf(file_bytes)
     chunks = chunk_text(text)
     await add_documents(user_id, chunks, source="autobiography")
     return len(chunks)
 
-
 async def ingest_text(user_id: int, text: str, source: str = "autobiography") -> int:
-    """Chunk, embed, and store raw text. Returns chunk count."""
+    """Process raw text and store in Firestore."""
     chunks = chunk_text(text)
     await add_documents(user_id, chunks, source=source)
     return len(chunks)
