@@ -7,7 +7,13 @@ from services import memory_service, llm_service
 
 
 async def build_context(user_id: int) -> str:
-    """Build a full context string from personality + goals + recent logs."""
+    """Build a full context string from personality + goals + recent logs.
+    
+    NOTE: The Council of Guides system prompt (in council.py) defines Jarvis's
+    permanent personality foundation. This service layers USER-SPECIFIC
+    personalization on top — their personality profile, goals, logs, and streaks.
+    The council defines HOW Jarvis speaks; this defines WHAT Jarvis knows about the user.
+    """
     parts = []
 
     # Personality
