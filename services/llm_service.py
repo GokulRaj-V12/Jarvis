@@ -64,8 +64,8 @@ async def _try_groq(prompt: str, context: str, system_prompt: str) -> str:
     response = _groq_client.chat.completions.create(
         model="llama-3.3-70b-versatile",
         messages=messages,
-        max_tokens=500,
-        temperature=0.7,
+        max_tokens=600,
+        temperature=0.85,
     )
     return response.choices[0].message.content.strip()
 
