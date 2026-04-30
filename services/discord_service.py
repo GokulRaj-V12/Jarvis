@@ -168,25 +168,28 @@ async def process_pdf(message, attachment):
     )
 
 async def chat_response(user_id: int, text: str) -> str:
-    # Retrieve relevant context from RAG
-    rag_chunks = await rag_service.query(user_id, text, k=3)
-    rag_context = "\n".join(rag_chunks) if rag_chunks else ""
+    # Only search RAG memory for substantive messages, not quick casual ones
+    rag_context = ""
+    if len(text) > 20:
+        rag_chunks = await rag_service.query(user_id, text, k=3)
+        rag_context = "\n".join(rag_chunks) if rag_chunks else ""
 
-    # Build personality context
-    personality_context = await personality_service.build_context(user_id)
+    # Only build personality context if user seems to want a deeper conversation
+    personality_context = ""
+    if len(text) > 40:
+        personality_context = await personality_service.build_context(user_id)
 
-    # Combine context
     full_context = ""
     if personality_context:
         full_context += personality_context + "\n\n"
     if rag_context:
-        full_context += f"## Relevant Memories\n{rag_context}"
+        full_context += f"## Relevant Memories (use only if directly relevant)\n{rag_context}"
 
     try:
         return await llm_service.generate(text, context=full_context)
     except Exception as e:
         logger.error(f"Error generating response: {e}")
-        return "Hmm, something went wrong on my end. Try again in a sec! 🐾"
+        return "Something went wrong on my end. Try again! 🐾"
 
 async def generate_plan_internal(user_id: int) -> str:
     personality_context = await personality_service.build_context(user_id)
