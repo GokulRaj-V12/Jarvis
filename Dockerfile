@@ -24,5 +24,5 @@ COPY . .
 # Expose the standard port (Render will override this with $PORT)
 EXPOSE 10000
 
-# Start the application using uvicorn
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "10000"]
+# Start the application using uvicorn with dynamic port
+CMD uvicorn main:app --host 0.0.0.0 --port ${PORT:-10000}
