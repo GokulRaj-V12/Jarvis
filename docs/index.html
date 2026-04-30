@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jarvis | AI Executive Assistant</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0a0a0f;
+            --accent-primary: #6366f1;
+            --accent-secondary: #8b5cf6;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.05);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+
+        /* Ambient Background Glow */
+        .ambient-glow {
+            position: fixed;
+            top: 20%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80vw;
+            height: 80vw;
+            background: radial-gradient(circle, rgba(99,102,241,0.15) 0%, rgba(10,10,15,0) 70%);
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 4rem 2rem;
+        }
+
+        /* Hero Section */
+        header {
+            text-align: center;
+            margin-bottom: 5rem;
+            animation: fadeInDown 1s ease-out;
+        }
+
+        h1 {
+            font-size: 4rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+            background: linear-gradient(to right, var(--accent-primary), var(--accent-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            font-size: 1.25rem;
+            color: var(--text-muted);
+            max-width: 600px;
+            margin: 0 auto 2.5rem auto;
+        }
+
+        /* Action Buttons */
+        .actions {
+            display: flex;
+            gap: 1.5rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            padding: 1rem 2rem;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            color: white;
+            box-shadow: 0 10px 20px rgba(99, 102, 241, 0.2);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 25px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: var(--text-main);
+            border: 1px solid var(--glass-border);
+            backdrop-filter: blur(10px);
+        }
+
+        .btn-outline:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        /* Feature Grid */
+        .section-title {
+            font-size: 2rem;
+            margin-bottom: 2rem;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 2rem;
+            margin-bottom: 5rem;
+        }
+
+        /* Glassmorphic Cards */
+        .card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 2rem;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            opacity: 0;
+            transform: translateY(30px);
+            animation: fadeUp 0.8s ease-out forwards;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .card:nth-child(2) { animation-delay: 0.1s; }
+        .card:nth-child(3) { animation-delay: 0.2s; }
+        .card:nth-child(4) { animation-delay: 0.3s; }
+        .card:nth-child(5) { animation-delay: 0.4s; }
+        .card:nth-child(6) { animation-delay: 0.5s; }
+
+        .card-img-wrapper {
+            width: 100%;
+            height: 300px;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 1.5rem;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid var(--glass-border);
+        }
+
+        .card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: top;
+            transition: transform 0.5s ease;
+        }
+
+        .card:hover img {
+            transform: scale(1.02);
+        }
+
+        .card-title {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+            color: #fff;
+        }
+
+        .card-desc {
+            color: var(--text-muted);
+            font-size: 1rem;
+        }
+
+        /* Animations */
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeUp {
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            h1 { font-size: 2.5rem; }
+            .grid { grid-template-columns: 1fr; }
+            .actions { flex-direction: column; }
+            .btn { width: 100%; justify-content: center; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="ambient-glow"></div>
+
+    <div class="container">
+        <!-- HEADER -->
+        <header>
+            <h1>Jarvis</h1>
+            <p class="subtitle">A persistent, context-aware AI executive assistant. Hosted 24/7 on Render and powered by dynamic LLM memory integration.</p>
+            
+            <div class="actions">
+                <a href="https://discord.com/oauth2/authorize?client_id=1484618742645260298&permissions=2147534912&integration_type=0&scope=bot+applications.commands" target="_blank" class="btn btn-primary">
+                    <svg style="width:24px;height:24px;margin-right:10px" viewBox="0 0 24 24">
+                        <path fill="currentColor" d="M19.27 5.33C17.94 4.71 16.5 4.26 15 4a.09.09 0 0 0-.07.03c-.18.33-.39.76-.53 1.09a16.09 16.09 0 0 0-4.8 0c-.14-.34-.35-.76-.54-1.09c-.01-.02-.04-.03-.07-.03c-1.5.26-2.93.71-4.27 1.33c-.01 0-.02.01-.03.02c-2.72 4.07-3.47 8.03-3.1 11.95c0 .02.01.04.03.05c1.8 1.32 3.53 2.12 5.24 2.65c.03.01.06 0 .07-.02c.4-.55.76-1.13 1.07-1.74c.02-.04 0-.08-.04-.09c-.57-.22-1.11-.48-1.64-.78c-.04-.02-.04-.08-.01-.11c.11-.08.22-.17.33-.25c.02-.02.05-.02.07-.01c3.44 1.57 7.15 1.57 10.55 0c.02-.01.05-.01.07.01c.11.09.22.17.33.26c.03.03.03.09-.01.11c-.52.31-1.07.56-1.64.78c-.04.01-.05.06-.04.09c.32.61.68 1.19 1.07 1.74c.03.01.06.02.09.01c1.72-.53 3.45-1.33 5.25-2.65c.02-.01.03-.03.03-.05c.44-4.53-.73-8.46-3.1-11.95c-.01-.01-.02-.02-.04-.02zM8.52 14.91c-1.03 0-1.89-.95-1.89-2.12s.84-2.12 1.89-2.12c1.06 0 1.9.96 1.89 2.12c0 1.17-.84 2.12-1.89 2.12zm6.97 0c-1.03 0-1.89-.95-1.89-2.12s.84-2.12 1.89-2.12c1.06 0 1.9.96 1.89 2.12c0 1.17-.83 2.12-1.89 2.12z"/>
+                    </svg>
+                    Invite Jarvis to Server
+                </a>
+                <a href="https://discord.gg/sDKkmc8PE9" target="_blank" class="btn btn-outline">
+                    Join Live Test Server
+                </a>
+            </div>
+        </header>
+
+        <!-- PRODUCT FEATURES -->
+        <h2 class="section-title">Capabilities & Workflow</h2>
+        <div class="grid">
+            
+            <div class="card">
+                <div class="card-img-wrapper">
+                    <img src="assets/goal.png" alt="Goal Setting Feature" onerror="this.src='https://via.placeholder.com/600x400/1a1a2e/6366f1?text=Screenshot:+goal.png'">
+                </div>
+                <h3 class="card-title">Objective Tracking</h3>
+                <p class="card-desc">Users establish persistent, long-term goals which the bot tracks across sessions.</p>
+            </div>
+
+            <div class="card">
+                <div class="card-img-wrapper">
+                    <img src="assets/log.png" alt="Progress Logging" onerror="this.src='https://via.placeholder.com/600x400/1a1a2e/6366f1?text=Screenshot:+log.png'">
+                </div>
+                <h3 class="card-title">Daily Progress Logs</h3>
+                <p class="card-desc">Maintains momentum through gamified daily streaks and progress documentation.</p>
+            </div>
+
+            <div class="card">
+                <div class="card-img-wrapper">
+                    <img src="assets/plan.png" alt="Strategic Planning" onerror="this.src='https://via.placeholder.com/600x400/1a1a2e/6366f1?text=Screenshot:+plan.png'">
+                </div>
+                <h3 class="card-title">AI Strategy Generation</h3>
+                <p class="card-desc">Synthesizes user logs and goals to auto-generate customized daily execution plans.</p>
+            </div>
+
+            <div class="card">
+                <div class="card-img-wrapper">
+                    <img src="assets/chat.png" alt="Conversational Intelligence" onerror="this.src='https://via.placeholder.com/600x400/1a1a2e/6366f1?text=Screenshot:+chat.png'">
+                </div>
+                <h3 class="card-title">Executive Mentorship</h3>
+                <p class="card-desc">Provides high-level strategic advice powered by a custom "Council of Guides" personality matrix.</p>
+            </div>
+        </div>
+
+        <!-- INFRASTRUCTURE -->
+        <h2 class="section-title">Infrastructure & Deployment</h2>
+        <div class="grid">
+            
+            <div class="card">
+                <div class="card-img-wrapper">
+                    <img src="assets/render.png" alt="Render Deployment" onerror="this.src='https://via.placeholder.com/600x400/1a1a2e/6366f1?text=Screenshot:+render.png'">
+                </div>
+                <h3 class="card-title">Cloud Deployment</h3>
+                <p class="card-desc">Containerized and deployed on Render for reliable, scalable cloud hosting.</p>
+            </div>
+
+            <div class="card">
+                <div class="card-img-wrapper">
+                    <img src="assets/uptime.png" alt="UptimeRobot Monitoring" onerror="this.src='https://via.placeholder.com/600x400/1a1a2e/6366f1?text=Screenshot:+uptime.png'">
+                </div>
+                <h3 class="card-title">24/7 Availability</h3>
+                <p class="card-desc">Continuous health-check monitoring via UptimeRobot guarantees zero downtime.</p>
+            </div>
+
+        </div>
+    </div>
+</body>
+</html>
