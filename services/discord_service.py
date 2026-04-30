@@ -58,6 +58,7 @@ async def hello(interaction: discord.Interaction):
 @bot.tree.command(name="log", description="Log your progress or update your day.")
 @app_commands.describe(text="What's on your mind?")
 async def log(interaction: discord.Interaction, text: str):
+    await interaction.response.defer()
     user_id = interaction.user.id
     # Save to structured DB
     memory_service.save_log(user_id, text)
@@ -68,30 +69,31 @@ async def log(interaction: discord.Interaction, text: str):
 
     # Get streak
     streak = memory_service.get_streak(user_id)
-    await interaction.response.send_message(
+    await interaction.followup.send(
         f"Logged! ✅\n🔥 **Streak:** {streak['current_streak']} days\n\nKeep it rolling."
     )
 
 @bot.tree.command(name="goal", description="Set or view your goals.")
 @app_commands.describe(title="New goal title (optional)")
 async def goal(interaction: discord.Interaction, title: str = None):
+    await interaction.response.defer()
     user_id = interaction.user.id
     
     if not title:
         # Show current goals
         goals = memory_service.get_active_goals(user_id)
         if not goals:
-            await interaction.response.send_message("No active goals yet. Use `/goal title:Your Goal` to set one!")
+            await interaction.followup.send("No active goals yet. Use `/goal title:Your Goal` to set one!")
             return
 
         msg = "🎯 **Your Goals:**\n\n"
         for i, g in enumerate(goals, 1):
             msg += f"{i}. {g['title']}\n"
-        await interaction.response.send_message(msg)
+        await interaction.followup.send(msg)
         return
 
     memory_service.save_goal(user_id, title)
-    await interaction.response.send_message(f"Goal set: **{title}** 🎯\n\nLet's make it happen.")
+    await interaction.followup.send(f"Goal set: **{title}** 🎯\n\nLet's make it happen.")
 
 @bot.tree.command(name="plan", description="Generate today's game plan.")
 async def plan(interaction: discord.Interaction):
