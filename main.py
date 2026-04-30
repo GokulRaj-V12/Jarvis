@@ -60,7 +60,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Jarvis Personal Assistant", lifespan=lifespan)
 
-@app.get("/")
+@app.api_route("/", methods=["GET", "HEAD", "POST"])
 async def root():
     """Root health check to keep Render service awake and verified."""
     return {
