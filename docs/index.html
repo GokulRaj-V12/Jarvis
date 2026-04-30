@@ -121,13 +121,17 @@
             margin-bottom: 2rem;
             text-align: center;
             font-weight: 600;
+            margin-top: 5rem;
         }
 
         .grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
             gap: 2rem;
-            margin-bottom: 5rem;
+        }
+        
+        .grid-3 {
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
         }
 
         /* Glassmorphic Cards */
@@ -150,12 +154,6 @@
             border-color: rgba(255, 255, 255, 0.1);
         }
 
-        .card:nth-child(2) { animation-delay: 0.1s; }
-        .card:nth-child(3) { animation-delay: 0.2s; }
-        .card:nth-child(4) { animation-delay: 0.3s; }
-        .card:nth-child(5) { animation-delay: 0.4s; }
-        .card:nth-child(6) { animation-delay: 0.5s; }
-
         .card-img-wrapper {
             width: 100%;
             height: 300px;
@@ -164,18 +162,30 @@
             margin-bottom: 1.5rem;
             background: rgba(0,0,0,0.3);
             border: 1px solid var(--glass-border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
         }
 
         .card img {
             width: 100%;
             height: 100%;
-            object-fit: cover;
-            object-position: top;
+            object-fit: contain; /* Changed from cover to contain to prevent zooming */
             transition: transform 0.5s ease;
         }
 
         .card:hover img {
             transform: scale(1.02);
+        }
+
+        .card-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            display: inline-block;
+            background: rgba(99,102,241,0.2);
+            padding: 1rem;
+            border-radius: 15px;
         }
 
         .card-title {
@@ -187,6 +197,41 @@
         .card-desc {
             color: var(--text-muted);
             font-size: 1rem;
+        }
+        
+        /* Flow Steps (Architecture) */
+        .flow-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        
+        @media (min-width: 768px) {
+            .flow-container {
+                flex-direction: row;
+                align-items: center;
+                justify-content: space-between;
+            }
+        }
+        
+        .flow-step {
+            flex: 1;
+            text-align: center;
+            padding: 2rem 1rem;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .flow-arrow {
+            font-size: 24px;
+            color: var(--text-muted);
+            text-align: center;
+        }
+        
+        @media (max-width: 767px) {
+            .flow-arrow { transform: rotate(90deg); }
         }
 
         /* Animations */
@@ -223,21 +268,60 @@
                     <svg style="width:24px;height:24px;margin-right:10px" viewBox="0 0 24 24">
                         <path fill="currentColor" d="M19.27 5.33C17.94 4.71 16.5 4.26 15 4a.09.09 0 0 0-.07.03c-.18.33-.39.76-.53 1.09a16.09 16.09 0 0 0-4.8 0c-.14-.34-.35-.76-.54-1.09c-.01-.02-.04-.03-.07-.03c-1.5.26-2.93.71-4.27 1.33c-.01 0-.02.01-.03.02c-2.72 4.07-3.47 8.03-3.1 11.95c0 .02.01.04.03.05c1.8 1.32 3.53 2.12 5.24 2.65c.03.01.06 0 .07-.02c.4-.55.76-1.13 1.07-1.74c.02-.04 0-.08-.04-.09c-.57-.22-1.11-.48-1.64-.78c-.04-.02-.04-.08-.01-.11c.11-.08.22-.17.33-.25c.02-.02.05-.02.07-.01c3.44 1.57 7.15 1.57 10.55 0c.02-.01.05-.01.07.01c.11.09.22.17.33.26c.03.03.03.09-.01.11c-.52.31-1.07.56-1.64.78c-.04.01-.05.06-.04.09c.32.61.68 1.19 1.07 1.74c.03.01.06.02.09.01c1.72-.53 3.45-1.33 5.25-2.65c.02-.01.03-.03.03-.05c.44-4.53-.73-8.46-3.1-11.95c-.01-.01-.02-.02-.04-.02zM8.52 14.91c-1.03 0-1.89-.95-1.89-2.12s.84-2.12 1.89-2.12c1.06 0 1.9.96 1.89 2.12c0 1.17-.84 2.12-1.89 2.12zm6.97 0c-1.03 0-1.89-.95-1.89-2.12s.84-2.12 1.89-2.12c1.06 0 1.9.96 1.89 2.12c0 1.17-.83 2.12-1.89 2.12z"/>
                     </svg>
-                    Invite Jarvis to Server
+                    Invite Jarvis
                 </a>
                 <a href="https://discord.gg/sDKkmc8PE9" target="_blank" class="btn btn-outline">
-                    Join Live Test Server
+                    Join Live Server
                 </a>
             </div>
         </header>
 
-        <!-- PRODUCT FEATURES -->
-        <h2 class="section-title">Capabilities & Workflow</h2>
+        <!-- THE PROBLEM -->
+        <h2 class="section-title">The Problem</h2>
+        <div class="grid grid-3">
+            <div class="card">
+                <div class="card-icon">😩</div>
+                <h3 class="card-title">Lost Progress</h3>
+                <p class="card-desc">People lose track of daily achievements, goals, and patterns. Traditional journals are passive.</p>
+            </div>
+            <div class="card">
+                <div class="card-icon">🤖</div>
+                <h3 class="card-title">No Context</h3>
+                <p class="card-desc">Generic AI doesn't know your goals, mood history, or past wins. Every chat starts from zero.</p>
+            </div>
+            <div class="card">
+                <div class="card-icon">⏰</div>
+                <h3 class="card-title">Not Proactive</h3>
+                <p class="card-desc">AI tools wait for you to open them. A real companion should reach out with plans automatically.</p>
+            </div>
+        </div>
+
+        <!-- THE SOLUTION (WHAT IS JARVIS) -->
+        <h2 class="section-title">The Solution</h2>
+        <div class="grid grid-3">
+            <div class="card">
+                <div class="card-icon">🧠</div>
+                <h3 class="card-title">Persistent Memory</h3>
+                <p class="card-desc">Jarvis remembers your logs, goals, and blockers across every single conversation.</p>
+            </div>
+            <div class="card">
+                <div class="card-icon">🎯</div>
+                <h3 class="card-title">Personalized AI</h3>
+                <p class="card-desc">Uses RAG (Retrieval-Augmented Generation) to pull relevant memories into every response.</p>
+            </div>
+            <div class="card">
+                <div class="card-icon">⏰</div>
+                <h3 class="card-title">Proactive</h3>
+                <p class="card-desc">Automatically sends a morning game plan at 8 AM and an evening review at 9 PM.</p>
+            </div>
+        </div>
+
+        <!-- DEMO SCREENSHOTS -->
+        <h2 class="section-title">Workflow Demonstration</h2>
         <div class="grid">
-            
             <div class="card">
                 <div class="card-img-wrapper">
-                    <img src="assets/goal.png" alt="Goal Setting Feature" onerror="this.src='https://via.placeholder.com/600x400/1a1a2e/6366f1?text=Screenshot:+goal.png'">
+                    <img src="assets/goal.png" alt="Goal Setting Feature">
                 </div>
                 <h3 class="card-title">Objective Tracking</h3>
                 <p class="card-desc">Users establish persistent, long-term goals which the bot tracks across sessions.</p>
@@ -245,7 +329,7 @@
 
             <div class="card">
                 <div class="card-img-wrapper">
-                    <img src="assets/log.png" alt="Progress Logging" onerror="this.src='https://via.placeholder.com/600x400/1a1a2e/6366f1?text=Screenshot:+log.png'">
+                    <img src="assets/log.png" alt="Progress Logging">
                 </div>
                 <h3 class="card-title">Daily Progress Logs</h3>
                 <p class="card-desc">Maintains momentum through gamified daily streaks and progress documentation.</p>
@@ -253,7 +337,7 @@
 
             <div class="card">
                 <div class="card-img-wrapper">
-                    <img src="assets/plan.png" alt="Strategic Planning" onerror="this.src='https://via.placeholder.com/600x400/1a1a2e/6366f1?text=Screenshot:+plan.png'">
+                    <img src="assets/plan.png" alt="Strategic Planning">
                 </div>
                 <h3 class="card-title">AI Strategy Generation</h3>
                 <p class="card-desc">Synthesizes user logs and goals to auto-generate customized daily execution plans.</p>
@@ -261,20 +345,76 @@
 
             <div class="card">
                 <div class="card-img-wrapper">
-                    <img src="assets/chat.png" alt="Conversational Intelligence" onerror="this.src='https://via.placeholder.com/600x400/1a1a2e/6366f1?text=Screenshot:+chat.png'">
+                    <img src="assets/chat.png" alt="Conversational Intelligence">
                 </div>
                 <h3 class="card-title">Executive Mentorship</h3>
                 <p class="card-desc">Provides high-level strategic advice powered by a custom "Council of Guides" personality matrix.</p>
             </div>
         </div>
 
+        <!-- HOW IT WORKS (ARCHITECTURE) -->
+        <h2 class="section-title">Architecture Flow</h2>
+        <div class="flow-container">
+            <div class="flow-step">
+                <div class="card-icon" style="margin-bottom:0.5rem; padding:0.5rem;">💬</div>
+                <h3 style="font-size:1.1rem; color:#fff;">User Sends</h3>
+                <p class="card-desc" style="font-size:0.9rem;">Message on Discord</p>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step">
+                <div class="card-icon" style="margin-bottom:0.5rem; padding:0.5rem;">🔍</div>
+                <h3 style="font-size:1.1rem; color:#fff;">Memory Search</h3>
+                <p class="card-desc" style="font-size:0.9rem;">ChromaDB Vector Match</p>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step">
+                <div class="card-icon" style="margin-bottom:0.5rem; padding:0.5rem;">🧬</div>
+                <h3 style="font-size:1.1rem; color:#fff;">Context Prep</h3>
+                <p class="card-desc" style="font-size:0.9rem;">Firestore Goals + Logs</p>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step">
+                <div class="card-icon" style="margin-bottom:0.5rem; padding:0.5rem;">🧠</div>
+                <h3 style="font-size:1.1rem; color:#fff;">Generation</h3>
+                <p class="card-desc" style="font-size:0.9rem;">Gemini / Groq Inference</p>
+            </div>
+        </div>
+
+        <!-- TECH STACK -->
+        <h2 class="section-title">Tech Stack</h2>
+        <div class="grid grid-3">
+            <div class="card">
+                <h3 class="card-title" style="color:var(--accent-primary)">🧠 Primary AI</h3>
+                <p class="card-desc"><strong>Google Gemini 2.0 Flash</strong><br>State-of-the-art LLM for natural language processing.</p>
+            </div>
+            <div class="card">
+                <h3 class="card-title" style="color:#ec4899">⚡ Fallback AI</h3>
+                <p class="card-desc"><strong>Groq + Llama-3 70B</strong><br>Ultra-fast inference fallback to prevent downtime.</p>
+            </div>
+            <div class="card">
+                <h3 class="card-title" style="color:var(--accent-secondary)">💾 Database</h3>
+                <p class="card-desc"><strong>Google Firestore</strong><br>Serverless NoSQL database storing users, goals, and logs.</p>
+            </div>
+            <div class="card">
+                <h3 class="card-title" style="color:#06b6d4">🔍 Vector RAG</h3>
+                <p class="card-desc"><strong>ChromaDB + MiniLM</strong><br>Semantic memory search using embeddings.</p>
+            </div>
+            <div class="card">
+                <h3 class="card-title" style="color:#f59e0b">💬 Interface</h3>
+                <p class="card-desc"><strong>Discord.py</strong><br>Full slash command suite + event-driven handling.</p>
+            </div>
+            <div class="card">
+                <h3 class="card-title" style="color:#22c55e">☁️ Hosting</h3>
+                <p class="card-desc"><strong>FastAPI on Render</strong><br>Containerized backend serving API and background tasks.</p>
+            </div>
+        </div>
+
         <!-- INFRASTRUCTURE -->
-        <h2 class="section-title">Infrastructure & Deployment</h2>
+        <h2 class="section-title">Infrastructure</h2>
         <div class="grid">
-            
             <div class="card">
                 <div class="card-img-wrapper">
-                    <img src="assets/render.png" alt="Render Deployment" onerror="this.src='https://via.placeholder.com/600x400/1a1a2e/6366f1?text=Screenshot:+render.png'">
+                    <img src="assets/render.png" alt="Render Deployment">
                 </div>
                 <h3 class="card-title">Cloud Deployment</h3>
                 <p class="card-desc">Containerized and deployed on Render for reliable, scalable cloud hosting.</p>
@@ -282,12 +422,11 @@
 
             <div class="card">
                 <div class="card-img-wrapper">
-                    <img src="assets/uptime.png" alt="UptimeRobot Monitoring" onerror="this.src='https://via.placeholder.com/600x400/1a1a2e/6366f1?text=Screenshot:+uptime.png'">
+                    <img src="assets/uptime.png" alt="UptimeRobot Monitoring">
                 </div>
                 <h3 class="card-title">24/7 Availability</h3>
                 <p class="card-desc">Continuous health-check monitoring via UptimeRobot guarantees zero downtime.</p>
             </div>
-
         </div>
     </div>
 </body>
